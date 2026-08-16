@@ -1,0 +1,16 @@
+{
+  "name": "framework-agent-harness-sync",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "tsx --test tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "sync:discover": "tsx sync/discover.ts",
+    "sync:apply": "tsx sync/apply.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}
