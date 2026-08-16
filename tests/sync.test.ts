@@ -63,6 +63,18 @@ test("모든 에이전트 스킬을 동기화해요", async () => {
   assert.equal(await readFile(join(target, ".codex", "skills", "wiki-update", "references", "conventions.md"), "utf8"), "conventions\n");
 });
 
+test("Framework Wiki Reader 스킬을 모든 에이전트 경로에 제공해요", async () => {
+  const root = process.cwd();
+  const paths = [".codex", ".claude", ".agent"].map((tool) => join(root, tool, "skills", "framework-wiki-reader", "SKILL.md"));
+  const contents = await Promise.all(paths.map((skillPath) => readFile(skillPath, "utf8")));
+
+  assert.equal(new Set(contents).size, 1);
+  for (const content of contents) {
+    assert.match(content, /name: framework-wiki-reader/);
+    assert.match(content, /resolved_links/);
+  }
+});
+
 test("기존 에이전트 지시를 보존하고 하네스 규칙만 갱신해요", async () => {
   const root = await mkdtemp(join(tmpdir(), "harness-sync-"));
   const source = join(root, "source");
