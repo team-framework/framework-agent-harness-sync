@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { syncHarnessInstallation } from "./github-app.ts";
 
@@ -57,9 +58,11 @@ export function createWebhookHandler({ config, fetchImpl = fetch }: any) {
 
 export function loadWebhookConfig(env = process.env) {
   const required = (name: string) => { const value = env[name]?.trim(); if (!value) throw new Error(`${name} 환경변수가 필요해요.`); return value; };
+  const privateKey = env.HARNESS_SYNC_APP_PRIVATE_KEY?.trim()
+    || (env.HARNESS_SYNC_APP_PRIVATE_KEY_PATH ? readFileSync(env.HARNESS_SYNC_APP_PRIVATE_KEY_PATH, "utf8").trim() : "");
   return {
     appId: required("HARNESS_SYNC_APP_CLIENT_ID"),
-    privateKey: required("HARNESS_SYNC_APP_PRIVATE_KEY").replace(/\\n/g, "\n"),
+    privateKey: privateKey.replace(/\\n/g, "\n") || required("HARNESS_SYNC_APP_PRIVATE_KEY"),
     sourceRepository: required("HARNESS_SYNC_SOURCE_REPOSITORY"),
     webhookSecret: required("GITHUB_WEBHOOK_SECRET"),
     webhookHost: env.GITHUB_WEBHOOK_HOST?.trim() || "0.0.0.0",
