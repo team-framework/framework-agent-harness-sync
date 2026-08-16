@@ -30,7 +30,7 @@ jobs:
           set -euo pipefail
           app_dir=/home/chaeyn/apps/framework-agent-harness-sync
           install -d -m 700 "$app_dir"
-          install -m 600 package.json package-lock.json AGENTS.md CLAUDE.md "$app_dir"
+          install -m 600 package.json package-lock.json AGENTS.md CLAUDE.md .gitattributes "$app_dir"
           rsync -a --delete sync/ "$app_dir/sync/"
           rsync -a --delete .agent/ "$app_dir/.agent/"
           rsync -a --delete .codex/ "$app_dir/.codex/"
