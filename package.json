@@ -6,7 +6,8 @@
     "test": "tsx --test tests/**/*.test.ts",
     "typecheck": "tsc --noEmit",
     "sync:discover": "tsx sync/discover.ts",
-    "sync:apply": "tsx sync/apply.ts"
+    "sync:apply": "tsx sync/apply.ts",
+    "sync:webhook": "tsx sync/webhook-server.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
