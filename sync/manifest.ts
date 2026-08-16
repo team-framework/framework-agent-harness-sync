@@ -1,4 +1,3 @@
-const skillNames = ["issue", "branch", "commit", "pull-request"];
 const issueTemplates = ["01-feat.yml", "02-fix.yml", "03-chore.yml", "04-refactor.yml"];
 
 export type SyncItem = {
@@ -7,14 +6,6 @@ export type SyncItem = {
   destination: string;
   mode?: string;
 };
-
-function skillItems(tool) {
-  return skillNames.map((name) => ({
-    id: tool + "-skill-" + name,
-    source: "." + tool + "/skills/" + name,
-    destination: "." + tool + "/skills/" + name
-  }));
-}
 
 export const syncItems: SyncItem[] = [
   {
@@ -29,9 +20,11 @@ export const syncItems: SyncItem[] = [
     destination: "CLAUDE.md",
     mode: "append-managed-instructions"
   },
-  ...skillItems("codex"),
-  ...skillItems("claude"),
-  ...skillItems("agent"),
+  ...["codex", "claude", "agent"].map((tool) => ({
+    id: tool + "-skills",
+    source: "." + tool + "/skills",
+    destination: "." + tool + "/skills"
+  })),
   {
     id: "git-attributes",
     source: ".gitattributes",

@@ -49,6 +49,7 @@ test("설치된 빈 레포에 하네스 스킬 Draft PR을 만들어요", async 
   assert.ok(tree.tree.some((file) => file.path === ".codex/skills/issue/SKILL.md"));
   assert.ok(tree.tree.some((file) => file.path === ".claude/skills/pull-request/SKILL.md"));
   assert.ok(tree.tree.some((file) => file.path === ".agent/skills/commit/SKILL.md"));
+  assert.ok(tree.tree.some((file) => file.path === ".codex/skills/wiki-update/SKILL.md"));
   assert.ok(tree.tree.some((file) => file.path === ".gitattributes"));
   assert.ok(tree.tree.some((file) => file.path === "AGENTS.md"));
   assert.ok(tree.tree.some((file) => file.path === "CLAUDE.md"));
