@@ -137,7 +137,18 @@ jobs:
             git -C target push origin --delete "$branch"
           fi
           git -C target switch -c "$branch"
-          git -C target add .agent .codex .claude .github .gitattributes AGENTS.md CLAUDE.md
+          sync_paths=(.agent .codex .claude .github .gitattributes AGENTS.md CLAUDE.md)
+          for path in "${sync_paths[@]}"; do
+            if git -C target check-ignore -q --no-index -- "$path"; then
+              echo "대상 레포의 .gitignore에 포함되어 동기화에서 제외해요: $path"
+              continue
+            fi
+            git -C target add -A -- "$path"
+          done
+          if git -C target diff --cached --quiet; then
+            npx --prefix source tsx source/sync/write-result.ts --file "$result_file" --repository "$TARGET_REPOSITORY" --status no_changes
+            exit 0
+          fi
           git -C target commit -m "chore: 에이전트 협업 규칙 동기화"
           git -C target push origin "HEAD:$branch"
           pr_url=$(gh pr create --repo "$TARGET_REPOSITORY" --base "$BASE_BRANCH" --head "$branch" --draft --title "chore: framework-agent-harness-sync" --body "Framework Agent Harness Sync 변경을 동기화했어요.")
