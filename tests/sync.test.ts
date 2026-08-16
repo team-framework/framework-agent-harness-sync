@@ -45,6 +45,24 @@ test("관리 대상 파일만 복사하고 대상 레포의 다른 파일은 유
   assert.equal(await readFile(join(target, ".codex", "skills", "custom", "SKILL.md"), "utf8"), "custom skill\\n");
 });
 
+test("모든 에이전트 스킬을 동기화해요", async () => {
+  const root = await mkdtemp(join(tmpdir(), "harness-sync-"));
+  const source = join(root, "source");
+  const target = join(root, "target");
+  await mkdir(join(source, ".codex", "skills", "wiki-update", "references"), { recursive: true });
+  await writeFile(join(source, ".codex", "skills", "wiki-update", "SKILL.md"), "wiki update skill\n");
+  await writeFile(join(source, ".codex", "skills", "wiki-update", "references", "conventions.md"), "conventions\n");
+
+  await applyHarnessFiles({
+    sourceRoot: source,
+    targetRoot: target,
+    items: [{ source: ".codex/skills", destination: ".codex/skills" }]
+  });
+
+  assert.equal(await readFile(join(target, ".codex", "skills", "wiki-update", "SKILL.md"), "utf8"), "wiki update skill\n");
+  assert.equal(await readFile(join(target, ".codex", "skills", "wiki-update", "references", "conventions.md"), "utf8"), "conventions\n");
+});
+
 test("기존 에이전트 지시를 보존하고 하네스 규칙만 갱신해요", async () => {
   const root = await mkdtemp(join(tmpdir(), "harness-sync-"));
   const source = join(root, "source");
