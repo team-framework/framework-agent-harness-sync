@@ -35,6 +35,7 @@ jobs:
           rsync -a --delete .agent/ "$app_dir/.agent/"
           rsync -a --delete .codex/ "$app_dir/.codex/"
           rsync -a --delete .claude/ "$app_dir/.claude/"
+          rsync -a --delete .github/ "$app_dir/.github/"
           install -m 600 deploy/Dockerfile "$app_dir/Dockerfile"
           install -m 600 deploy/compose.yaml "$app_dir/compose.yaml"
           cd "$app_dir"
