@@ -1,0 +1,16 @@
+services:
+  webhook:
+    build: { context: ., dockerfile: Dockerfile }
+    env_file: .env
+    environment:
+      GITHUB_WEBHOOK_HOST: 0.0.0.0
+      GITHUB_WEBHOOK_PORT: "3007"
+      GITHUB_WEBHOOK_PATH: /github/webhooks
+      HARNESS_SYNC_SOURCE_REPOSITORY: team-framework/framework-agent-harness-sync
+    ports: ["127.0.0.1:3007:3007"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3007/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
