@@ -7,7 +7,10 @@ services:
       GITHUB_WEBHOOK_PORT: "3007"
       GITHUB_WEBHOOK_PATH: /github/webhooks
       HARNESS_SYNC_SOURCE_REPOSITORY: team-framework/framework-agent-harness-sync
+      HARNESS_SYNC_APP_PRIVATE_KEY_PATH: /run/secrets/harness-sync-app-private-key.pem
     ports: ["127.0.0.1:3007:3007"]
+    volumes:
+      - ./private-key.pem:/run/secrets/harness-sync-app-private-key.pem:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3007/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
