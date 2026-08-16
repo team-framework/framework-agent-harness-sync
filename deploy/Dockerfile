@@ -9,7 +9,7 @@ COPY sync ./sync
 COPY .codex ./.codex
 COPY .claude ./.claude
 COPY .agent ./.agent
-COPY AGENTS.md CLAUDE.md ./
+COPY AGENTS.md CLAUDE.md .gitattributes ./
 
 RUN chmod -R a+rX /app
 
