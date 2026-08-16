@@ -5,7 +5,7 @@ services:
     environment:
       GITHUB_WEBHOOK_HOST: 0.0.0.0
       GITHUB_WEBHOOK_PORT: "3007"
-      GITHUB_WEBHOOK_PATH: /github/webhooks
+      GITHUB_WEBHOOK_PATH: /agent-harness-sync/github/webhooks
       HARNESS_SYNC_SOURCE_REPOSITORY: team-framework/framework-agent-harness-sync
       HARNESS_SYNC_APP_PRIVATE_KEY_PATH: /run/secrets/harness-sync-app-private-key.pem
     ports: ["127.0.0.1:3007:3007"]
