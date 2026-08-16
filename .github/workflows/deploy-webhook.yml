@@ -1,0 +1,42 @@
+name: Deploy Harness Sync Webhook
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - sync/**
+      - deploy/**
+      - package.json
+      - package-lock.json
+      - AGENTS.md
+      - CLAUDE.md
+      - .agent/**
+      - .codex/**
+      - .claude/**
+      - .github/workflows/deploy-webhook.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, chaeyn-server, framework-harness]
+    steps:
+      - uses: actions/checkout@v4
+      - name: 서버 서비스 갱신
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_dir=/home/chaeyn/apps/framework-agent-harness-sync
+          install -d -m 700 "$app_dir"
+          install -m 600 package.json package-lock.json AGENTS.md CLAUDE.md "$app_dir"
+          rsync -a --delete sync/ "$app_dir/sync/"
+          rsync -a --delete .agent/ "$app_dir/.agent/"
+          rsync -a --delete .codex/ "$app_dir/.codex/"
+          rsync -a --delete .claude/ "$app_dir/.claude/"
+          install -m 600 deploy/Dockerfile "$app_dir/Dockerfile"
+          install -m 600 deploy/compose.yaml "$app_dir/compose.yaml"
+          cd "$app_dir"
+          docker compose up -d --build
+          docker compose ps
