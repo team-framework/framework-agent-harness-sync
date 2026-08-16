@@ -11,5 +11,7 @@ COPY .claude ./.claude
 COPY .agent ./.agent
 COPY AGENTS.md CLAUDE.md ./
 
+RUN chmod -R a+rX /app
+
 USER node
 CMD ["npm", "run", "sync:webhook"]
