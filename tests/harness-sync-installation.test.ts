@@ -7,7 +7,7 @@ function json(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body), json: async () => body };
 }
 
-test("설치된 빈 레포에 하네스 스킬 Draft PR을 만들어요", async () => {
+test("설치된 위키는 읽거나 쓰지 않고 다른 레포에 전체 스킬 Draft PR을 만들어요", async () => {
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const calls = [];
   const result = await syncHarnessInstallation({
@@ -25,6 +25,8 @@ test("설치된 빈 레포에 하네스 스킬 Draft PR을 만들어요", async 
       if (path === "/app/installations/7/access_tokens") return json({ token: "installation-token" }, 201);
       if (path === "/installation/repositories?per_page=100&page=1") return json({ repositories: [
         { full_name: "team-framework/framework-agent-harness-sync", name: "framework-agent-harness-sync", default_branch: "main" },
+        { full_name: "team-framework/framework-llm-wiki", name: "framework-llm-wiki", default_branch: "main" },
+        { full_name: "TEAM-FRAMEWORK/Framework-LLM-Wiki", name: "Framework-LLM-Wiki", default_branch: "main" },
         { full_name: "team-framework/new-empty-repository", name: "new-empty-repository", default_branch: "main" }
       ] });
       if (path.startsWith("/repos/team-framework/new-empty-repository/pulls?")) return json([]);
@@ -44,12 +46,14 @@ test("설치된 빈 레포에 하네스 스킬 Draft PR을 만들어요", async 
     status: "pr_created",
     detail: "https://github.com/team-framework/new-empty-repository/pull/1"
   }]);
+  assert.equal(calls.some((call) => call.path.toLowerCase().startsWith("/repos/team-framework/framework-llm-wiki/")), false);
   const treeRequest = calls.find((call) => call.path.endsWith("/git/trees") && call.options.method === "POST");
   const tree = JSON.parse(treeRequest.options.body);
   assert.ok(tree.tree.some((file) => file.path === ".codex/skills/issue/SKILL.md"));
   assert.ok(tree.tree.some((file) => file.path === ".claude/skills/pull-request/SKILL.md"));
   assert.ok(tree.tree.some((file) => file.path === ".agent/skills/commit/SKILL.md"));
   assert.ok(tree.tree.some((file) => file.path === ".codex/skills/wiki-update/SKILL.md"));
+  assert.ok(tree.tree.some((file) => file.path === ".codex/skills/framework-wiki-reader/SKILL.md"));
   assert.ok(tree.tree.some((file) => file.path === ".gitattributes"));
   assert.ok(tree.tree.some((file) => file.path === "AGENTS.md"));
   assert.ok(tree.tree.some((file) => file.path === "CLAUDE.md"));

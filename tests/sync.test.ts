@@ -23,6 +23,24 @@ test("설치된 활성 레포만 동기화 대상으로 선택해요", () => {
   }]);
 });
 
+test("정본 위키만 대소문자와 관계없이 동기화 대상에서 제외해요", () => {
+  const repositories = [
+    "team-framework/framework-llm-wiki",
+    "TEAM-FRAMEWORK/Framework-LLM-Wiki",
+    "team-framework/framework-llm-wiki-mcp",
+    "other-team/framework-llm-wiki",
+    "team-framework/another-wiki"
+  ].map((full_name) => ({ full_name, name: full_name.split("/")[1], default_branch: "main" }));
+
+  const targets = selectTargets(repositories, { sourceRepository: "team-framework/framework-agent-harness-sync" });
+
+  assert.deepEqual(targets.map((target) => target.repository), [
+    "other-team/framework-llm-wiki",
+    "team-framework/another-wiki",
+    "team-framework/framework-llm-wiki-mcp"
+  ]);
+});
+
 test("관리 대상 파일만 복사하고 대상 레포의 다른 파일은 유지해요", async () => {
   const root = await mkdtemp(join(tmpdir(), "harness-sync-"));
   const source = join(root, "source");

@@ -1,13 +1,23 @@
 # 하네스 자동 동기화
 
-`framework-agent-harness-sync`가 협업 가이드의 원본이에요. 원본이 바뀌면 설치된 GitHub App이 접근할 수 있는 레포를 자동으로 찾고, 필요한 파일만 담은 Draft PR을 하나씩 만들어요. App을 새 레포에 설치하거나 기존 설치 범위에 새 레포를 추가하면 `installation.created` 또는 `installation_repositories.added` webhook으로 즉시 같은 Draft PR을 만들어요.
+`framework-agent-harness-sync`가 협업 가이드의 원본이에요. 원본이 바뀌면 설치된 GitHub App이 접근할 수 있는 레포를 찾고, 동기화 정책을 통과한 레포에 필요한 파일만 담은 Draft PR을 만들어요. App을 새 레포에 설치하거나 기존 설치 범위에 새 레포를 추가할 때도 같은 정책을 적용해요.
+
+## App 권한과 동기화 정책
+
+GitHub App 접근 권한은 해당 레포에서 GitHub API를 호출할 수 있는 범위예요. 하네스 동기화 대상은 `sync/repository-policy.ts`에서 별도로 결정해요. Actions의 대상 검색과 설치 webhook이 같은 `selectTargets`를 호출하므로, 두 경로에 같은 제외 정책을 적용해요.
+
+`team-framework/framework-llm-wiki`는 자동 하네스 동기화에서 제외해요. Discord 봇이 승인된 위키 제안의 branch·commit·PR을 만들 때 이 App 권한을 사용하므로, App 설치 목록에서 위키를 제거하지 않아요. 기존 문서·권한·Discord PR 생성 경로도 바꾸지 않아요.
+
+위키 #76은 App 권한을 추가한 뒤 공통 스킬 원본 변경이 전파되면서 생성됐어요. PR을 닫는 것만으로는 다음 실행을 막을 수 없으므로 중앙 정책에서 위키를 제외해요. 이미 있는 파일이나 PR을 이 필터가 자동 삭제하지는 않아요.
+
+다른 레포는 기존 설치 범위와 source·archive·disabled·fork 제외 조건을 유지해요. 앞으로 App 권한만 필요한 레포를 추가할 때는 스킬 배포 여부도 이 정책에서 정해요.
 
 ## 동기화 대상
 
 - `AGENTS.md`, `CLAUDE.md` (기존 내용은 보존하고 하네스 관리 섹션만 추가 또는 갱신)
-- `.codex/skills/{issue,branch,commit,pull-request}`
-- `.claude/skills/{issue,branch,commit,pull-request}`
-- `.agent/skills/{issue,branch,commit,pull-request}`
+- `.codex/skills/**` (참고 문서·스크립트 포함)
+- `.claude/skills/**` (참고 문서·스크립트 포함)
+- `.agent/skills/**` (참고 문서·스크립트 포함)
 - `.gitattributes`
 - `.github/ISSUE_TEMPLATE/{01-feat,02-fix,03-chore,04-refactor}.yml`
 - `.github/pull_request_template.md`
@@ -28,7 +38,7 @@ GitHub App을 조직에 설치할 때는 우선 아래 세 레포만 선택해�
 - `innolive-server`
 - `innolive-ai`
 
-이후 App 설치 범위를 바꾸면 별도 대상 목록을 수정하지 않아도 다음 동기화에서 자동 반영돼요.
+이후 App 설치 범위를 바꾸면 다음 동기화에서 후보 목록에 반영돼요. 동기화 제외 정책에 있는 레포에는 스킬 PR을 만들지 않아요.
 
 App에는 아래 Repository permissions가 필요해요.
 
@@ -39,3 +49,12 @@ App에는 아래 Repository permissions가 필요해요.
 App은 `Installation`과 `Installation repositories` webhook을 구독해요. App의 Client ID는 이 레포 Variables의 `HARNESS_SYNC_APP_CLIENT_ID`에, private key는 Secrets의 `HARNESS_SYNC_APP_PRIVATE_KEY`에 넣어요. 설치 직후 동기화용 webhook 서비스는 다음 단계에서 이 레포에 배포하고, `HARNESS_SYNC_SOURCE_REPOSITORY=team-framework/framework-agent-harness-sync`를 사용해요.
 
 설정 전에는 워크플로가 실패하지 않고 동기화를 건너뛰어요. 설정 후 빈 레포 하나에 App을 설치해 `chore: framework-agent-harness-sync` Draft PR이 생성되는지 확인해요. 기존 설치 레포는 Actions에서 **Sync Collaboration Harness**를 수동 실행해 최초 동기화를 할 수 있어요.
+
+## 2026-09-29 위키 제외 검증
+
+- TypeScript 검사와 테스트 13개 통과. canonical 이름과 대소문자가 섞인 위키 이름을 제외하고, `framework-llm-wiki-mcp`·다른 조직·유사 이름 저장소는 유지하는지 확인했어요.
+- mock installation에 위키와 일반 저장소를 함께 넣어 위키의 GitHub API 읽기·쓰기 0회와 다른 저장소의 전체 스킬 Draft PR 생성을 확인했어요.
+- 운영 App의 실제 설치 목록 5개를 읽어 같은 CLI로 필터링했어요. 위키만 제외하고 동기화 대상 4개를 유지했어요. App은 위키 접근과 Contents/PR write 권한을 그대로 가지고 있어요. 토큰·키는 출력하거나 저장소에 기록하지 않았어요.
+- 위키 #76은 확인 당시 이미 닫혀 있었어요. 이 검증에서는 새 PR을 발행하거나 기존 PR을 수정하지 않았어요.
+
+이 정책은 변경 PR을 main에 병합한 뒤 Actions에 적용돼요. 설치 webhook에는 이어지는 `Deploy Harness Sync Webhook` 배포가 완료되어야 적용돼요. 실제 설치 목록을 이용한 CLI 검증과 운영 배포 완료를 구분해요.
