@@ -23,12 +23,15 @@ test("설치된 활성 레포만 동기화 대상으로 선택해요", () => {
   }]);
 });
 
-test("정본 위키만 대소문자와 관계없이 동기화 대상에서 제외해요", () => {
+test("정본 위키와 MCP 저장소만 대소문자와 관계없이 동기화 대상에서 제외해요", () => {
   const repositories = [
     "team-framework/framework-llm-wiki",
     "TEAM-FRAMEWORK/Framework-LLM-Wiki",
     "team-framework/framework-llm-wiki-mcp",
+    "TEAM-FRAMEWORK/Framework-LLM-Wiki-MCP",
+    "team-framework/framework-llm-wiki-mcp-extra",
     "other-team/framework-llm-wiki",
+    "other-team/framework-llm-wiki-mcp",
     "team-framework/another-wiki"
   ].map((full_name) => ({ full_name, name: full_name.split("/")[1], default_branch: "main" }));
 
@@ -36,8 +39,9 @@ test("정본 위키만 대소문자와 관계없이 동기화 대상에서 제�
 
   assert.deepEqual(targets.map((target) => target.repository), [
     "other-team/framework-llm-wiki",
+    "other-team/framework-llm-wiki-mcp",
     "team-framework/another-wiki",
-    "team-framework/framework-llm-wiki-mcp"
+    "team-framework/framework-llm-wiki-mcp-extra"
   ]);
 });
 
