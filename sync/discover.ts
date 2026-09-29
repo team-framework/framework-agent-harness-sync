@@ -1,10 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { isExcludedFromHarnessSync } from "./repository-policy.ts";
 
 export function selectTargets(repositories, { sourceRepository }) {
   return repositories
     .filter((repository) => (
       repository.full_name !== sourceRepository
+      && !isExcludedFromHarnessSync(repository.full_name)
       && !repository.archived
       && !repository.disabled
       && !repository.fork
