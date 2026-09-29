@@ -7,7 +7,7 @@ function json(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body), json: async () => body };
 }
 
-test("설치된 위키는 읽거나 쓰지 않고 다른 레포에 전체 스킬 Draft PR을 만들어요", async () => {
+test("설치된 위키와 MCP 저장소는 읽거나 쓰지 않고 다른 레포에 전체 스킬 Draft PR을 만들어요", async () => {
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const calls = [];
   const result = await syncHarnessInstallation({
@@ -27,6 +27,7 @@ test("설치된 위키는 읽거나 쓰지 않고 다른 레포에 전체 스킬
         { full_name: "team-framework/framework-agent-harness-sync", name: "framework-agent-harness-sync", default_branch: "main" },
         { full_name: "team-framework/framework-llm-wiki", name: "framework-llm-wiki", default_branch: "main" },
         { full_name: "TEAM-FRAMEWORK/Framework-LLM-Wiki", name: "Framework-LLM-Wiki", default_branch: "main" },
+        { full_name: "team-framework/framework-llm-wiki-mcp", name: "framework-llm-wiki-mcp", default_branch: "main" },
         { full_name: "team-framework/new-empty-repository", name: "new-empty-repository", default_branch: "main" }
       ] });
       if (path.startsWith("/repos/team-framework/new-empty-repository/pulls?")) return json([]);
@@ -47,6 +48,7 @@ test("설치된 위키는 읽거나 쓰지 않고 다른 레포에 전체 스킬
     detail: "https://github.com/team-framework/new-empty-repository/pull/1"
   }]);
   assert.equal(calls.some((call) => call.path.toLowerCase().startsWith("/repos/team-framework/framework-llm-wiki/")), false);
+  assert.equal(calls.some((call) => call.path.toLowerCase().startsWith("/repos/team-framework/framework-llm-wiki-mcp/")), false);
   const treeRequest = calls.find((call) => call.path.endsWith("/git/trees") && call.options.method === "POST");
   const tree = JSON.parse(treeRequest.options.body);
   assert.ok(tree.tree.some((file) => file.path === ".codex/skills/issue/SKILL.md"));

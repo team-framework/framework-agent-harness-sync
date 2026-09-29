@@ -8,6 +8,8 @@ GitHub App 접근 권한은 해당 레포에서 GitHub API를 호출할 수 있�
 
 `team-framework/framework-llm-wiki`는 자동 하네스 동기화에서 제외해요. Discord 봇이 승인된 위키 제안의 branch·commit·PR을 만들 때 이 App 권한을 사용하므로, App 설치 목록에서 위키를 제거하지 않아요. 기존 문서·권한·Discord PR 생성 경로도 바꾸지 않아요.
 
+`team-framework/framework-llm-wiki-mcp`도 자동 동기화에서 제외해요. MCP 서비스 저장소는 기존 에이전트 지침과 스킬을 자체 관리해요. 자동 동기화가 서버 실행에 필요한 단계는 아니며, App 설치 권한과 저장소 파일은 그대로 유지해요. 열린 동기화 PR #19는 별도로 닫아요.
+
 위키 #76은 App 권한을 추가한 뒤 공통 스킬 원본 변경이 전파되면서 생성됐어요. PR을 닫는 것만으로는 다음 실행을 막을 수 없으므로 중앙 정책에서 위키를 제외해요. 이미 있는 파일이나 PR을 이 필터가 자동 삭제하지는 않아요.
 
 다른 레포는 기존 설치 범위와 source·archive·disabled·fork 제외 조건을 유지해요. 앞으로 App 권한만 필요한 레포를 추가할 때는 스킬 배포 여부도 이 정책에서 정해요.
@@ -58,3 +60,9 @@ App은 `Installation`과 `Installation repositories` webhook을 구독해요. Ap
 - 위키 #76은 확인 당시 이미 닫혀 있었어요. 이 검증에서는 새 PR을 발행하거나 기존 PR을 수정하지 않았어요.
 
 이 정책은 변경 PR을 main에 병합한 뒤 Actions에 적용돼요. 설치 webhook에는 이어지는 `Deploy Harness Sync Webhook` 배포가 완료되어야 적용돼요. 실제 설치 목록을 이용한 CLI 검증과 운영 배포 완료를 구분해요.
+
+## 2026-09-30 MCP 저장소 제외 검증
+
+- 저장소 이름을 정확히 비교해 정본 위키와 MCP 서비스 저장소만 제외하고, 다른 조직의 동명 저장소와 비슷한 이름의 저장소는 유지하는지 확인했어요.
+- 설치 webhook 모의 실행에서 두 저장소에 대한 GitHub API 읽기·쓰기 요청이 없고 다른 저장소의 Draft PR은 생성되는지 확인했어요.
+- TypeScript 검사와 테스트 13개를 통과했어요. 운영 반영에는 이 변경의 병합과 webhook 재배포가 필요해요.
