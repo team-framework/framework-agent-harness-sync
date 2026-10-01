@@ -62,7 +62,7 @@ test("설치된 위키와 MCP 저장소는 읽거나 쓰지 않고 다른 레포
   assert.ok(tree.tree.some((file) => file.path === "CLAUDE.md"));
   assert.ok(tree.tree.some((file) => file.path === "docs/collaboration.md"));
   assert.ok(tree.tree.some((file) => file.path === ".github/scripts/collaboration-policy.mjs"));
-  assert.ok(tree.tree.some((file) => file.path === ".github/workflows/collaboration-policy.yml"));
+  assert.equal(tree.tree.some((file) => file.path.startsWith(".github/workflows/")), false);
   assert.equal(tree.tree.some((file) => file.path === ".github/collaboration-policy.json"), false);
   const pullRequest = calls.find((call) => call.path.endsWith("/pulls") && call.options.method === "POST");
   assert.deepEqual(JSON.parse(pullRequest.options.body), {

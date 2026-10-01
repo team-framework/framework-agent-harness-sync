@@ -43,10 +43,15 @@ export const syncItems: SyncItem[] = [
   ...[
     "docs/collaboration.md",
     ".github/scripts/collaboration-policy.mjs",
-    ".github/scripts/collaboration-policy.test.mjs",
-    ".github/workflows/collaboration-policy.yml"
+    ".github/scripts/collaboration-policy.test.mjs"
   ].map((path) => ({ source: path, destination: path }))
 ];
+
+// GitHub App has Contents/PR permissions; workflow bootstrap uses a maintainer PR.
+export const manualBootstrapItems: SyncItem[] = [{
+  source: ".github/workflows/collaboration-policy.yml",
+  destination: ".github/workflows/collaboration-policy.yml"
+}];
 
 export const syncBranch = "harness-sync/framework-agent";
 export const syncCommitMessage = "chore: 에이전트 협업 규칙 동기화";

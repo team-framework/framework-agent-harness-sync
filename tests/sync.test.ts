@@ -6,7 +6,7 @@ import test from "node:test";
 import { applyHarnessFiles } from "../sync/apply.ts";
 import { selectTargets } from "../sync/discover.ts";
 import { renderSyncReport } from "../sync/report.ts";
-import { syncItems } from "../sync/manifest.ts";
+import { syncItems, manualBootstrapItems } from "../sync/manifest.ts";
 import { syncPullRequestBody } from "../sync/pr-body.ts";
 import { validatePullRequest, validateReadiness } from "../.github/scripts/collaboration-policy.mjs";
 
@@ -141,9 +141,12 @@ test("전체 동기화 후에도 저장소별 기존 기록 기준과 제품 파
   assert.equal(await readFile(join(target, ".github", "collaboration-policy.json"), "utf8"), cutoff);
   assert.equal(await readFile(join(target, "product.txt"), "utf8"), "existing product\n");
   assert.equal(await readFile(join(target, "docs", "collaboration.md"), "utf8"), await readFile("docs/collaboration.md", "utf8"));
-  for (const path of [".github/scripts/collaboration-policy.mjs", ".github/scripts/collaboration-policy.test.mjs", ".github/workflows/collaboration-policy.yml"]) {
+  for (const path of [".github/scripts/collaboration-policy.mjs", ".github/scripts/collaboration-policy.test.mjs"]) {
     assert.equal(await readFile(join(target, path), "utf8"), await readFile(path, "utf8"));
   }
+  await assert.rejects(readFile(join(target, ".github/workflows/collaboration-policy.yml")), { code: "ENOENT" });
+  await applyHarnessFiles({ sourceRoot: process.cwd(), targetRoot: target, items: manualBootstrapItems });
+  assert.equal(await readFile(join(target, ".github/workflows/collaboration-policy.yml"), "utf8"), await readFile(".github/workflows/collaboration-policy.yml", "utf8"));
   assert.equal(syncItems.some(item => item.destination === ".github/collaboration-policy.json"), false);
 });
 
