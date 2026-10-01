@@ -13,6 +13,11 @@ on:
       - .agent/**
       - .codex/**
       - .claude/**
+      - .github/ISSUE_TEMPLATE/**
+      - .github/pull_request_template.md
+      - .github/scripts/collaboration-policy*
+      - .github/workflows/collaboration-policy.yml
+      - docs/collaboration.md
       - .github/workflows/deploy-webhook.yml
   workflow_dispatch:
 
@@ -36,6 +41,8 @@ jobs:
           rsync -a --delete .codex/ "$app_dir/.codex/"
           rsync -a --delete .claude/ "$app_dir/.claude/"
           rsync -a --delete .github/ "$app_dir/.github/"
+          install -d "$app_dir/docs"
+          install -m 600 docs/collaboration.md "$app_dir/docs/collaboration.md"
           install -m 600 deploy/Dockerfile "$app_dir/Dockerfile"
           install -m 600 deploy/compose.yaml "$app_dir/compose.yaml"
           cd "$app_dir"

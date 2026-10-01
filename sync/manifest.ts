@@ -1,4 +1,4 @@
-const issueTemplates = ["01-feat.yml", "02-fix.yml", "03-chore.yml", "04-refactor.yml"];
+const issueTemplates = ["01-feat.yml", "02-fix.yml", "03-chore.yml", "04-refactor.yml", "config.yml"];
 
 export type SyncItem = {
   id?: string;
@@ -39,7 +39,13 @@ export const syncItems: SyncItem[] = [
     id: "pull-request-template",
     source: ".github/pull_request_template.md",
     destination: ".github/pull_request_template.md"
-  }
+  },
+  ...[
+    "docs/collaboration.md",
+    ".github/scripts/collaboration-policy.mjs",
+    ".github/scripts/collaboration-policy.test.mjs",
+    ".github/workflows/collaboration-policy.yml"
+  ].map((path) => ({ source: path, destination: path }))
 ];
 
 export const syncBranch = "harness-sync/framework-agent";

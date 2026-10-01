@@ -3,6 +3,7 @@ import { lstat, readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { selectTargets } from "./discover.ts";
 import { mergeManagedInstructions } from "./instructions.ts";
+import { syncPullRequestBody } from "./pr-body.ts";
 import { syncBranch, syncCommitMessage, syncItems, syncPullRequestTitle, type SyncItem } from "./manifest.ts";
 
 const API_BASE_URL = "https://api.github.com";
@@ -159,7 +160,7 @@ async function createSyncPullRequest({ client, target, files }) {
       head: syncBranch,
       base: target.baseBranch,
       draft: true,
-      body: "Framework Agent Harness Sync 변경을 동기화했어요."
+      body: syncPullRequestBody
     }
   });
   return { repository: target.repository, status: "pr_created", detail: pullRequest.html_url };

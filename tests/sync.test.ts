@@ -6,6 +6,9 @@ import test from "node:test";
 import { applyHarnessFiles } from "../sync/apply.ts";
 import { selectTargets } from "../sync/discover.ts";
 import { renderSyncReport } from "../sync/report.ts";
+import { syncItems } from "../sync/manifest.ts";
+import { syncPullRequestBody } from "../sync/pr-body.ts";
+import { validatePullRequest, validateReadiness } from "../.github/scripts/collaboration-policy.mjs";
 
 test("설치된 활성 레포만 동기화 대상으로 선택해요", () => {
   const targets = selectTargets([
@@ -125,4 +128,28 @@ test("동기화 결과를 레포별 표로 만들어요", () => {
   assert.match(report, /innolive-client/);
   assert.match(report, /Draft PR 생성/);
   assert.match(report, /기존 동기화 PR 대기/);
+});
+
+test("전체 동기화 후에도 저장소별 기존 기록 기준과 제품 파일 유지", async () => {
+  const target = await mkdtemp(join(tmpdir(), "collaboration-rollout-"));
+  await mkdir(join(target, ".github"), { recursive: true });
+  const cutoff = '{"legacyPullRequestMaxNumber":42,"legacyIssueMaxNumber":41}\n';
+  await writeFile(join(target, ".github", "collaboration-policy.json"), cutoff);
+  await writeFile(join(target, "product.txt"), "existing product\n");
+  await applyHarnessFiles({ sourceRoot: process.cwd(), targetRoot: target });
+  await applyHarnessFiles({ sourceRoot: process.cwd(), targetRoot: target });
+  assert.equal(await readFile(join(target, ".github", "collaboration-policy.json"), "utf8"), cutoff);
+  assert.equal(await readFile(join(target, "product.txt"), "utf8"), "existing product\n");
+  assert.equal(await readFile(join(target, "docs", "collaboration.md"), "utf8"), await readFile("docs/collaboration.md", "utf8"));
+  for (const path of [".github/scripts/collaboration-policy.mjs", ".github/scripts/collaboration-policy.test.mjs", ".github/workflows/collaboration-policy.yml"]) {
+    assert.equal(await readFile(join(target, path), "utf8"), await readFile(path, "utf8"));
+  }
+  assert.equal(syncItems.some(item => item.destination === ".github/collaboration-policy.json"), false);
+});
+
+test("자동 동기화 본문은 Draft 검사 통과, 미검증 상태의 Ready 머지 차단", () => {
+  const pr = { title: "chore: framework-agent-harness-sync", body: syncPullRequestBody, head: { ref: "harness-sync/framework-agent" }, user: { login: "framework-harness-sync[bot]" }, draft: true };
+  assert.deepEqual(validatePullRequest(pr).errors, []);
+  assert.deepEqual(validateReadiness(pr).errors, []);
+  assert.ok(validateReadiness({ ...pr, draft: false }).errors.length);
 });
