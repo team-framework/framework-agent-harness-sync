@@ -12,6 +12,9 @@ on:
       - .gitattributes
       - .github/ISSUE_TEMPLATE/**
       - .github/pull_request_template.md
+      - .github/scripts/collaboration-policy*
+      - .github/workflows/collaboration-policy.yml
+      - docs/collaboration.md
       - .github/workflows/assign-issue-author.yml
       - sync/**
       - .github/workflows/sync-harness.yml
@@ -137,7 +140,7 @@ jobs:
             git -C target push origin --delete "$branch"
           fi
           git -C target switch -c "$branch"
-          sync_paths=(.agent .codex .claude .github .gitattributes AGENTS.md CLAUDE.md)
+          sync_paths=(.agent .codex .claude .github docs/collaboration.md .gitattributes AGENTS.md CLAUDE.md)
           for path in "${sync_paths[@]}"; do
             if git -C target check-ignore -q --no-index -- "$path"; then
               echo "대상 레포의 .gitignore에 포함되어 동기화에서 제외해요: $path"
@@ -151,7 +154,9 @@ jobs:
           fi
           git -C target commit -m "chore: 에이전트 협업 규칙 동기화"
           git -C target push origin "HEAD:$branch"
-          pr_url=$(gh pr create --repo "$TARGET_REPOSITORY" --base "$BASE_BRANCH" --head "$branch" --draft --title "chore: framework-agent-harness-sync" --body "Framework Agent Harness Sync 변경을 동기화했어요.")
+          pr_body_file="$RUNNER_TEMP/harness-pr.md"
+          npx --prefix source tsx source/sync/pr-body.ts > "$pr_body_file"
+          pr_url=$(gh pr create --repo "$TARGET_REPOSITORY" --base "$BASE_BRANCH" --head "$branch" --draft --title "chore: framework-agent-harness-sync" --body-file "$pr_body_file")
           npx --prefix source tsx source/sync/write-result.ts --file "$result_file" --repository "$TARGET_REPOSITORY" --status pr_created --detail "$pr_url"
       - name: 대상 결과 보관
         if: always()

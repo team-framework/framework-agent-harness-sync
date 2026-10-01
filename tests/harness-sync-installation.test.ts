@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 import { createAppJwt, syncHarnessInstallation } from "../sync/github-app.ts";
+import { syncPullRequestBody } from "../sync/pr-body.ts";
 
 function json(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body), json: async () => body };
@@ -59,13 +60,17 @@ test("설치된 위키와 MCP 저장소는 읽거나 쓰지 않고 다른 레포
   assert.ok(tree.tree.some((file) => file.path === ".gitattributes"));
   assert.ok(tree.tree.some((file) => file.path === "AGENTS.md"));
   assert.ok(tree.tree.some((file) => file.path === "CLAUDE.md"));
+  assert.ok(tree.tree.some((file) => file.path === "docs/collaboration.md"));
+  assert.ok(tree.tree.some((file) => file.path === ".github/scripts/collaboration-policy.mjs"));
+  assert.equal(tree.tree.some((file) => file.path.startsWith(".github/workflows/")), false);
+  assert.equal(tree.tree.some((file) => file.path === ".github/collaboration-policy.json"), false);
   const pullRequest = calls.find((call) => call.path.endsWith("/pulls") && call.options.method === "POST");
   assert.deepEqual(JSON.parse(pullRequest.options.body), {
     title: "chore: framework-agent-harness-sync",
     head: "harness-sync/framework-agent",
     base: "main",
     draft: true,
-    body: "Framework Agent Harness Sync 변경을 동기화했어요."
+    body: syncPullRequestBody
   });
 });
 
