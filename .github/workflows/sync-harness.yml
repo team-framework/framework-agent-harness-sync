@@ -193,7 +193,7 @@ jobs:
         with:
           pattern: sync-result-*
           path: results
-          merge-multiple: true
+          merge-multiple: false
       - name: 동기화 결과 요약
         run: |
           mkdir -p results
