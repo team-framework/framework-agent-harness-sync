@@ -1,4 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const statusText = {
@@ -26,6 +27,29 @@ export function renderSyncReport(results) {
   ].join("\n");
 }
 
+export function parseSyncResults(content: string) {
+  try {
+    return [JSON.parse(content)];
+  } catch {
+    // Accept older newline-delimited results without hiding damaged JSON.
+    return content.split(/\r?\n/).filter(line => line.trim()).map(line => JSON.parse(line));
+  }
+}
+
+export async function readSyncResults(directory: string): Promise<any[]> {
+  const files = await readdir(directory, { withFileTypes: true });
+  const results = await Promise.all(files.map(async (file) => {
+    const path = join(directory, file.name);
+    // Keep artifact directories separate: every target uses sync-result.json.
+    if (file.isDirectory()) return readSyncResults(path);
+    if (file.isFile() && file.name.endsWith(".json")) {
+      return parseSyncResults(await readFile(path, "utf8"));
+    }
+    return [];
+  }));
+  return results.flat();
+}
+
 function argument(name) {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1] : null;
@@ -35,10 +59,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const resultsDirectory = argument("--results-directory");
   if (!resultsDirectory) throw new Error("사용법: tsx sync/report.ts --results-directory <directory>");
 
-  const files = await readdir(resultsDirectory, { withFileTypes: true });
-  const results = await Promise.all(files
-    .filter((file) => file.isFile() && file.name.endsWith(".json"))
-    .map(async (file) => JSON.parse(await readFile(resultsDirectory + "/" + file.name, "utf8"))));
-
-  console.log(renderSyncReport(results));
+  console.log(renderSyncReport(await readSyncResults(resultsDirectory)));
 }

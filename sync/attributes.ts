@@ -33,9 +33,14 @@ export function mergeManagedAttributes(existing = "", attributes: string) {
 
   const block = mergeManagedInstructions("", attributes, markers);
   let inserted = false;
+  const isLegacy = (line: string) => legacyHarnessLines.has(line.replace(/\r?\n$/, ""));
   // Retain line endings and whitespace for every line not owned by the harness.
-  const migrated = lines.map((line) => {
-    if (!legacyHarnessLines.has(line.replace(/\r?\n$/, ""))) return line;
+  const migrated = lines.map((line, index) => {
+    // A separator between removed rules must not become a new blank line at EOF.
+    const tail = lines.slice(index + 1);
+    if (inserted && /^\s*$/.test(line) && tail.some(isLegacy)
+      && tail.every((remaining) => isLegacy(remaining) || /^\s*$/.test(remaining))) return "";
+    if (!isLegacy(line)) return line;
     if (inserted) return "";
     inserted = true;
     return block;
