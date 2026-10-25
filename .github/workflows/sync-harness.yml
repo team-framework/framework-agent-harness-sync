@@ -109,6 +109,7 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           path: target
           persist-credentials: false
+          fetch-depth: 0
       - name: 협업 하네스 동기화
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -136,8 +137,15 @@ jobs:
           git -C target config user.name "$APP_SLUG[bot]"
           git -C target config user.email "$bot_id+$APP_SLUG[bot]@users.noreply.github.com"
           git -C target remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${TARGET_REPOSITORY}.git"
-          if git -C target ls-remote --exit-code --heads origin "$branch" >/dev/null; then
-            git -C target push origin --delete "$branch"
+          if bash source/sync/check-branch.sh target "$branch"; then
+            :
+          else
+            branch_status=$?
+            if [ "$branch_status" -ne 3 ]; then
+              exit "$branch_status"
+            fi
+            npx --prefix source tsx source/sync/write-result.ts --file "$result_file" --repository "$TARGET_REPOSITORY" --status skipped --detail "잔존 $branch 브랜치에 기본 브랜치에 없는 커밋이 있어 보존했어요. 관리자 확인이 필요해요."
+            exit 0
           fi
           git -C target switch -c "$branch"
           sync_paths=(.agent .codex .claude .github docs/collaboration.md .gitattributes AGENTS.md CLAUDE.md)
