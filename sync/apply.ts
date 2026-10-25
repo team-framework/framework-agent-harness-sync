@@ -2,6 +2,7 @@ import { cp, lstat, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mergeManagedInstructions } from "./instructions.ts";
+import { mergeManagedAttributes } from "./attributes.ts";
 import { syncItems, type SyncItem } from "./manifest.ts";
 
 function containedPath(root, path) {
@@ -25,14 +26,15 @@ export async function applyHarnessFiles({ sourceRoot, targetRoot, items = syncIt
     const sourceStat = await lstat(source);
 
     await mkdir(dirname(destination), { recursive: true });
-    if (item.mode === "append-managed-instructions") {
+    if (item.mode === "append-managed-instructions" || item.mode === "merge-managed-attributes") {
       let existing = "";
       try {
         existing = await readFile(destination, "utf8");
       } catch (error) {
         if (error.code !== "ENOENT") throw error;
       }
-      await writeFile(destination, mergeManagedInstructions(existing, await readFile(source, "utf8")));
+      const merge = item.mode === "merge-managed-attributes" ? mergeManagedAttributes : mergeManagedInstructions;
+      await writeFile(destination, merge(existing, await readFile(source, "utf8")));
       copied.push(item.destination);
       continue;
     }

@@ -3,6 +3,7 @@ import { lstat, readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { selectTargets } from "./discover.ts";
 import { mergeManagedInstructions } from "./instructions.ts";
+import { mergeManagedAttributes } from "./attributes.ts";
 import { syncPullRequestBody } from "./pr-body.ts";
 import { syncBranch, syncCommitMessage, syncItems, syncPullRequestTitle, type SyncItem } from "./manifest.ts";
 
@@ -128,14 +129,15 @@ async function createSyncPullRequest({ client, target, files }) {
   const baseTree = await client.request(`/repos/${target.repository}/git/trees/${baseCommit.tree.sha}?recursive=1`);
   const existingBlobs = new Map(baseTree.tree.filter((entry) => entry.type === "blob").map((entry) => [entry.path, entry.sha]));
   const resolvedFiles = await Promise.all(files.map(async (file) => {
-    if (file.mode !== "append-managed-instructions") return file;
+    if (file.mode !== "append-managed-instructions" && file.mode !== "merge-managed-attributes") return file;
     const existingSha = existingBlobs.get(file.path);
     let existing = "";
     if (existingSha) {
       const blob = await client.request(`/repos/${target.repository}/git/blobs/${existingSha}`);
       existing = Buffer.from(blob.content, blob.encoding || "base64").toString("utf8");
     }
-    const content = Buffer.from(mergeManagedInstructions(existing, file.content.toString("utf8")));
+    const merge = file.mode === "merge-managed-attributes" ? mergeManagedAttributes : mergeManagedInstructions;
+    const content = Buffer.from(merge(existing, file.content.toString("utf8")));
     return { ...file, content, sha: gitBlobSha(content) };
   }));
   const changedFiles = resolvedFiles.filter((file) => existingBlobs.get(file.path) !== file.sha);

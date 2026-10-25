@@ -1,11 +1,70 @@
 import assert from "node:assert/strict";
-import { generateKeyPairSync } from "node:crypto";
+import { createHash, generateKeyPairSync } from "node:crypto";
 import test from "node:test";
-import { createAppJwt, syncHarnessInstallation } from "../sync/github-app.ts";
+import { createAppJwt, loadSyncTree, syncHarnessInstallation } from "../sync/github-app.ts";
+import { mergeManagedInstructions } from "../sync/instructions.ts";
 import { syncPullRequestBody } from "../sync/pr-body.ts";
 
 function json(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body), json: async () => body };
+}
+
+for (const scenario of ["missing", "legacy", "managed"]) {
+  test(`GitHub App .gitattributes 보존 및 변경 없는 재실행의 PR 미생성: ${scenario}`, async () => {
+    const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const files = await loadSyncTree({ sourceRoot: process.cwd() });
+    const source = files.find((file) => file.path === ".gitattributes").content.toString("utf8");
+    const block = `# framework-collaboration-harness:start\n${source.trim()}\n# framework-collaboration-harness:end\n`;
+    const lfs = "*.pt filter=lfs diff=lfs merge=lfs -text\n";
+    const remote = new Map(files.filter((file) => file.path !== ".gitattributes").map((file) => [
+      file.path,
+      file.mode === "append-managed-instructions" ? mergeManagedInstructions("", file.content.toString("utf8")) : file.content.toString("utf8")
+    ]));
+    if (scenario === "legacy") remote.set(".gitattributes", source + lfs);
+    if (scenario === "managed") remote.set(".gitattributes", lfs + "# framework-collaboration-harness:start\n*.old text\n# framework-collaboration-harness:end\n# custom\n");
+    const expected = scenario === "missing" ? block : scenario === "legacy" ? block + "\n" + lfs : lfs + block + "# custom\n";
+    const writes = [];
+    const blobSha = (content: string) => createHash("sha1").update(`blob ${Buffer.byteLength(content)}\0`).update(content).digest("hex");
+    const options = {
+      installationId: 10,
+      config: { appId: "Iv1.test", privateKey: privateKey.export({ type: "pkcs1", format: "pem" }), sourceRepository: "team-framework/framework-agent-harness-sync" },
+      sourceRoot: process.cwd(),
+      fetchImpl: async (url, request: any = {}) => {
+        const path = new URL(url).pathname + new URL(url).search;
+        if (path === "/app/installations/10/access_tokens") return json({ token: "installation-token" }, 201);
+        if (path === "/installation/repositories?per_page=100&page=1") return json({ repositories: [
+          { full_name: "team-framework/target", name: "target", default_branch: "main" }
+        ] });
+        if (request.method === "POST") writes.push(path);
+        if (path.startsWith("/repos/team-framework/target/pulls?")) return json([]);
+        if (path.endsWith("/git/ref/heads/main")) return json({ object: { sha: "base-commit" } });
+        if (path.endsWith("/git/commits/base-commit")) return json({ sha: "base-commit", tree: { sha: "base-tree" } });
+        if (path.endsWith("/git/trees/base-tree?recursive=1")) return json({ tree: [...remote].map(([path, content]) => ({ path, type: "blob", sha: blobSha(content) })) });
+        if (path.includes("/git/blobs/")) {
+          const content = [...remote.values()].find((content) => path.endsWith(`/git/blobs/${blobSha(content)}`));
+          assert.notEqual(content, undefined);
+          return json({ encoding: "base64", content: Buffer.from(content).toString("base64") });
+        }
+        if (path.endsWith("/git/trees") && request.method === "POST") {
+          const { tree } = JSON.parse(request.body);
+          assert.deepEqual(tree, [{ path: ".gitattributes", mode: "100644", type: "blob", content: expected }]);
+          // Model the resulting file already applied to main on the next sync.
+          for (const file of tree) remote.set(file.path, file.content);
+          return json({ sha: "sync-tree" }, 201);
+        }
+        if (path.endsWith("/git/commits") && request.method === "POST") return json({ sha: "sync-commit" }, 201);
+        if (path.endsWith("/git/refs") && request.method === "POST") return json({}, 201);
+        if (path.endsWith("/pulls") && request.method === "POST") return json({ html_url: "https://github.com/team-framework/target/pull/1" }, 201);
+        throw new Error(`예상하지 않은 GitHub 요청: ${request.method || "GET"} ${path}`);
+      }
+    };
+
+    assert.equal((await syncHarnessInstallation(options))[0].status, "pr_created");
+    assert.equal(writes.length, 4);
+    writes.length = 0;
+    assert.deepEqual(await syncHarnessInstallation(options), [{ repository: "team-framework/target", status: "no_changes" }]);
+    assert.deepEqual(writes, []);
+  });
 }
 
 test("설치된 위키와 MCP 저장소는 읽거나 쓰지 않고 다른 레포에 전체 스킬 Draft PR을 만들어요", async () => {
