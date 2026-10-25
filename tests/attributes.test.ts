@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -19,7 +20,9 @@ const cases = [
   { name: "빈 파일", existing: "", expected: block },
   { name: "LFS 규칙만 있는 파일", existing: aiLfs, expected: aiLfs + block },
   { name: "마지막 개행이 없는 파일", existing: aiLfs.trimEnd(), expected: aiLfs + block },
-  { name: "마커 없는 기존 하네스 파일", existing: source, expected: block + "\n" },
+  { name: "마커 없는 기존 하네스 파일", existing: source, expected: block },
+  { name: "고유 규칙 뒤의 기존 하네스 파일", existing: aiLfs + source, expected: aiLfs + block },
+  { name: "CRLF 기존 하네스 파일", existing: source.replaceAll("\n", "\r\n"), expected: block },
   { name: "innolive-client의 기존 규칙과 두 LFS 규칙", existing: source + clientLfs, expected: block + "\n" + clientLfs },
   { name: "innolive-ai의 기존 규칙과 LFS 규칙", existing: source + aiLfs, expected: block + "\n" + aiLfs },
   {
@@ -66,6 +69,26 @@ for (const { name, existing, expected } of cases) {
     assert.equal(await readFile(join(targetRoot, ".gitattributes"), "utf8"), expected);
   });
 }
+
+test("innolive-server의 기존 속성 변환은 Git 공백 검사 통과 및 커밋 후 멱등성 유지", async (t) => {
+  const targetRoot = await mkdtemp(join(tmpdir(), "harness-attributes-git-"));
+  t.after(() => rm(targetRoot, { recursive: true, force: true }));
+  const git = (...args: string[]) => execFileSync("git", ["-C", targetRoot, ...args], { encoding: "utf8" });
+  git("init", "-b", "main");
+  git("config", "user.name", "test");
+  git("config", "user.email", "test@example.com");
+  await writeFile(join(targetRoot, ".gitattributes"), source);
+  git("add", ".gitattributes");
+  git("commit", "-m", "initial");
+  const options = { sourceRoot: process.cwd(), targetRoot, items: syncItems.filter(item => item.destination === ".gitattributes") };
+  await applyHarnessFiles(options);
+  git("diff", "--check");
+  git("add", ".gitattributes");
+  git("diff", "--cached", "--check");
+  git("commit", "-m", "sync");
+  await applyHarnessFiles(options);
+  assert.equal(git("status", "--porcelain"), "");
+});
 
 test("원본 규칙이 바뀌어도 이전 하네스 규칙을 중복 없이 이전해요", () => {
   const updatedSource = "*.md text eol=lf\n";
