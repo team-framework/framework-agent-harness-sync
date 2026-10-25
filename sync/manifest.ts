@@ -28,7 +28,8 @@ export const syncItems: SyncItem[] = [
   {
     id: "git-attributes",
     source: ".gitattributes",
-    destination: ".gitattributes"
+    destination: ".gitattributes",
+    mode: "merge-managed-attributes"
   },
   ...issueTemplates.map((name) => ({
     id: "issue-template-" + name,

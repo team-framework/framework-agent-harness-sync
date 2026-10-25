@@ -20,13 +20,30 @@ GitHub App 접근 권한은 해당 레포에서 GitHub API를 호출할 수 있�
 - `.codex/skills/**` (참고 문서·스크립트 포함)
 - `.claude/skills/**` (참고 문서·스크립트 포함)
 - `.agent/skills/**` (참고 문서·스크립트 포함)
-- `.gitattributes`
+- `.gitattributes` (Git LFS 등 저장소 고유 규칙을 보존하고 하네스 관리 블록만 갱신)
 - `.github/ISSUE_TEMPLATE/{01-feat,02-fix,03-chore,04-refactor}.yml`
 - `.github/pull_request_template.md`
 
 GitHub App 설치 토큰은 GitHub Actions workflow 파일을 만들 수 없으므로 `.github/workflows/assign-issue-author.yml`은 자동 동기화 대상에서 제외해요. Discord 알림 코드, 배포 설정, 대상 레포의 고유 스킬도 동기화하지 않아요.
 
 `AGENTS.md` 또는 `CLAUDE.md`가 이미 있는 대상 레포는 해당 파일을 덮어쓰지 않아요. `framework-collaboration-harness` 관리 마커 사이의 섹션만 갱신하므로 제품 고유 지시는 유지돼요.
+
+`.gitattributes`는 Git 속성 파일에 맞는 `#` 주석 마커를 사용해요. 로컬 적용과 GitHub App 모두 아래 블록만 갱신하고, 블록 밖의 LFS 규칙·주석·빈 줄과 상대 순서는 보존해요.
+
+```gitattributes
+# framework-collaboration-harness:start
+- text=auto eol=lf
+
+*.md       text eol=lf linguist-detectable
+*.yaml     text eol=lf linguist-detectable
+*.yml      text eol=lf linguist-detectable
+*.json     text eol=lf linguist-detectable
+# framework-collaboration-harness:end
+```
+
+마커가 없는 기존 파일에서는 이전에 배포한 하네스 규칙 다섯 줄과 정확히 일치하는 줄만 제거하고, 첫 일치 위치에 관리 블록을 넣어요. 공백이나 속성이 다른 규칙은 저장소 고유 내용으로 유지하며, 빈 줄도 삭제하지 않아요. 이전 규칙 목록은 `sync/attributes.ts`에 고정하여 원본 규칙이 바뀌어도 이전을 지원해요. 일치하는 줄이 없으면 기존 내용 뒤에 블록을 추가하고, 파일이 없으면 블록으로 새 파일을 만들어요.
+
+재실행은 동일한 내용을 만들어요. 모든 동기화 대상 파일이 같으면 GitHub App은 커밋·브랜치·PR을 만들지 않아요. Actions 경로도 변경 파일이 없으면 PR 생성을 건너뛰어요.
 
 같은 대상 레포에 열린 동기화 PR이 있으면 새 PR을 만들지 않아요. PR을 머지하거나 닫은 다음 실행에서 최신 원본으로 다시 동기화해요.
 
